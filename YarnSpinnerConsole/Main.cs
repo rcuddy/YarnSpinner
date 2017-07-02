@@ -535,11 +535,49 @@ namespace Yarn
 
                 expectedNextLine = null;
 
-                Console.WriteLine(lineText.text);
+                Console.WriteLine(checkVars(lineText.text));
                 if (waitForLines == true)
                 {
                     Console.Read();
                 }
+            }
+            // Add temporary variable inlining based on TheSabotender's suggestion at:
+            // https://github.com/thesecretlab/YarnSpinner/issues/25#issuecomment-227475923
+            private string checkVars(string input)
+            {
+                string output = string.Empty;
+                bool checkingVar = false;
+                string currentVar = string.Empty;
+
+                int index = 0;
+                while (index < input.Length) {
+                    if (input [index] == '[') {
+                        checkingVar = true;
+                        currentVar = string.Empty;
+                    } else if (input [index] == ']') {
+                        checkingVar = false;
+                        output += ParseVariable(currentVar);
+                        currentVar = string.Empty;
+                    } else if (checkingVar) {
+                        currentVar += input [index];
+                    } else {
+                        output += input[index];
+                    }
+                    index += 1;
+                }
+
+                return output;
+            }
+            
+            private string ParseVariable (string varName)
+            {
+                //Check YarnSpinner's variable storage first
+                if (variableStore.GetValue (varName) != Yarn.Value.NULL) {
+                    return variableStore.GetValue (varName).AsString;
+                }
+
+                //If no variables are found, return the variable name
+                return varName;
             }
 
             public void RunOptions(Options optionsGroup, OptionChooser optionChooser)
